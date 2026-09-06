@@ -41,7 +41,7 @@ export default async function handler(req, res) {
   try {
     const deepSeekKey = process.env.DEEPSEEK_API_KEY;
     if (deepSeekKey) {
-      const deepSeekModel = process.env.DEEPSEEK_MODEL || "deepseek-vl2";
+      const deepSeekModel = process.env.DEEPSEEK_MODEL || "deepseek-v4-flash-vision-exp";
       const baseUrl = process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com/v1/chat/completions";
 
       const response = await fetch(baseUrl, {

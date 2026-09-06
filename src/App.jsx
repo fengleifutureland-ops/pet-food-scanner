@@ -541,7 +541,8 @@ export default function PetHealthApp() {
 {"food_name": "中文食物名称（尽量具体，如品牌+产品名）", "calories_per_100g": 数字, "protein_per_100g": 数字, "fat_per_100g": 数字, "carb_per_100g": 数字, "suggested_portion_g": 数字, "danger_level": "safe" 或 "caution" 或 "danger", "species_warning": "中文说明，如果对狗和猫都安全则为空字符串，否则说明对${speciesLabel}等宠物的风险", "tip": "一句简短的中文喂养建议"}
 只有在照片模糊、拍摄角度问题或完全看不清任何文字和图案、真正无法判断时，才将 food_name 设为 "无法识别"，danger_level 设为 "caution"。请特别留意巧克力、葡萄/葡萄干、洋葱、大蒜、木糖醇、牛油果、坚果（尤其夏威夷果）、酒精、咖啡因、生/熟骨头、高盐高脂人类食物、以及人类零食中常见的调味料和添加剂对宠物的潜在风险。`;
 
-      const response = await fetch("/api/analyze-food", {
+      const apiBase = import.meta.env.VITE_API_BASE || "";
+      const response = await fetch(`${apiBase}/api/analyze-food`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ base64, mediaType: "image/jpeg", prompt }),
