@@ -191,6 +191,13 @@ const MEAL_PLAN_LIBRARY = [
   { id: "energy", title: "高能日", subtitle: "牛肉颗粒 + 鸡蛋 + 白饭", kcal: "约 480 kcal", color: C.forest },
 ];
 
+const RECIPE_LIBRARY = [
+  { id: "recipe-1", title: "鸡肉南瓜碗", tags: ["high-protein", "easy-digest", "mild"], kcal: 360, desc: "鸡肉泥 + 南瓜泥 + 少量白饭，适合日常摄入稳妥。", badge: "轻食" },
+  { id: "recipe-2", title: "牛肉米饭碗", tags: ["energy", "high-protein"], kcal: 470, desc: "牛肉颗粒搭配米饭，适合活动量高的宠物。", badge: "高能" },
+  { id: "recipe-3", title: "低脂酸奶杯", tags: ["low-fat", "low-sugar"], kcal: 210, desc: "无糖酸奶搭配南瓜泥，适合补水和加餐。", badge: "低脂" },
+  { id: "recipe-4", title: "海鲜清淡碗", tags: ["mild", "easy-digest", "low-fat"], kcal: 300, desc: "清淡海鲜搭配蒸熟米饭，适合胃口不太好的日子。", badge: "清淡" },
+];
+
 const NUTRITION_FILTERS = [
   { label: "低脂", value: "low-fat" },
   { label: "高蛋白", value: "high-protein" },
@@ -498,6 +505,9 @@ export default function PetHealthApp() {
       ? favoriteFoods.filter((item) => item.name !== food.name)
       : [{ id: uid(), name: food.name, calories: food.calories || 0, note: food.note || "" }, ...favoriteFoods].slice(0, 12);
     await persistFavorites(next);
+  };
+  const removeFavorite = async (name) => {
+    await persistFavorites(favoriteFoods.filter((item) => item.name !== name));
   };
   const recordRecentFood = async (foodName) => {
     if (!foodName) return;
@@ -949,6 +959,7 @@ export default function PetHealthApp() {
             favoriteFoods={favoriteFoods}
             recentFoods={recentFoods}
             onToggleFavorite={toggleFavorite}
+            onRemoveFavorite={removeFavorite}
           />
         )}
         {tab === "scan" && (
@@ -1063,11 +1074,13 @@ function MacroPill({ icon: Icon, value, unit, label, color, bg }) {
 }
 
 // ================= HOME =================
-function HomeTab({ pet, dailyGoal, dayTotal, dayProtein, dayFat, dayCarb, pct, dayLogs, selectedDate, dayOffset, setDayOffset, onRemove, onEditGrams, onGoScan, onGoManage, isBowl, setIsBowl, favoriteFoods, recentFoods, onToggleFavorite }) {
+function HomeTab({ pet, dailyGoal, dayTotal, dayProtein, dayFat, dayCarb, pct, dayLogs, selectedDate, dayOffset, setDayOffset, onRemove, onEditGrams, onGoScan, onGoManage, isBowl, setIsBowl, favoriteFoods, recentFoods, onToggleFavorite, onRemoveFavorite }) {
   const [editingId, setEditingId] = useState(null);
   const [editGrams, setEditGrams] = useState("");
   const [foodQuery, setFoodQuery] = useState("");
+  const [selectedFilter, setSelectedFilter] = useState("high-protein");
   const visibleFoods = FOOD_LIBRARY.filter((item) => item.name.toLowerCase().includes(foodQuery.toLowerCase()) || item.note.toLowerCase().includes(foodQuery.toLowerCase()));
+  const filteredRecipes = RECIPE_LIBRARY.filter((recipe) => recipe.tags.includes(selectedFilter));
 
   if (!pet) {
     return (
@@ -1230,7 +1243,10 @@ function HomeTab({ pet, dailyGoal, dayTotal, dayProtein, dayFat, dayCarb, pct, d
             ) : (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {favoriteFoods.map((food) => (
-                  <span key={food.id || food.name} style={{ background: C.safeSoft, color: C.forestDark, borderRadius: 999, padding: "5px 8px", fontSize: 11.5, fontWeight: 700 }}>{food.name}</span>
+                  <div key={food.id || food.name} style={{ display: "flex", alignItems: "center", gap: 6, background: C.safeSoft, color: C.forestDark, borderRadius: 999, padding: "5px 8px", fontSize: 11.5, fontWeight: 700 }}>
+                    <span>{food.name}</span>
+                    <button onClick={() => onRemoveFavorite(food.name)} style={{ border: "none", background: "none", color: C.forestDark, cursor: "pointer", padding: 0, fontSize: 12 }}>×</button>
+                  </div>
                 ))}
               </div>
             )}
@@ -1257,18 +1273,35 @@ function HomeTab({ pet, dailyGoal, dayTotal, dayProtein, dayFat, dayCarb, pct, d
         <div style={{ fontFamily: FONT_DISPLAY, fontSize: 16, marginBottom: 10 }}>AI 智能餐盘</div>
         <div style={{ display: "flex", gap: 8, marginBottom: 12, overflowX: "auto", paddingBottom: 4 }}>
           {NUTRITION_FILTERS.map((filter) => (
-            <span key={filter.value} style={{ flexShrink: 0, background: C.safeSoft, border: `1px solid ${C.border}`, color: C.forestDark, borderRadius: 999, fontSize: 11, padding: "6px 10px", fontWeight: 700 }}>{filter.label}</span>
+            <button
+              key={filter.value}
+              onClick={() => setSelectedFilter(filter.value)}
+              style={{
+                flexShrink: 0,
+                background: selectedFilter === filter.value ? C.forestDark : C.safeSoft,
+                border: `1px solid ${C.border}`,
+                color: selectedFilter === filter.value ? "#fff" : C.forestDark,
+                borderRadius: 999,
+                fontSize: 11,
+                padding: "6px 10px",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              {filter.label}
+            </button>
           ))}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {MEAL_PLAN_LIBRARY.map((plan) => (
-            <div key={plan.id} style={{ ...cardStyle(), padding: "12px 12px", borderLeft: `4px solid ${plan.color}` }}>
+          {filteredRecipes.map((recipe) => (
+            <div key={recipe.id} style={{ ...cardStyle(), padding: "12px 12px", borderLeft: `4px solid ${C.forestDark}` }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 700 }}>{plan.title}</div>
-                  <div style={{ fontSize: 11.5, color: C.inkSoft, marginTop: 3 }}>{plan.subtitle}</div>
+                  <div style={{ fontSize: 12.5, color: C.forestDark, background: C.safeSoft, borderRadius: 999, padding: "4px 8px", display: "inline-block", marginBottom: 6, fontWeight: 700 }}>{recipe.badge}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700 }}>{recipe.title}</div>
+                  <div style={{ fontSize: 11.5, color: C.inkSoft, marginTop: 3 }}>{recipe.desc}</div>
                 </div>
-                <div style={{ fontSize: 11.5, color: plan.color, fontWeight: 700 }}>{plan.kcal}</div>
+                <div style={{ fontSize: 11.5, color: C.forestDark, fontWeight: 700 }}>{recipe.kcal} kcal</div>
               </div>
             </div>
           ))}
