@@ -185,6 +185,28 @@ const FOOD_LIBRARY = [
   { name: "无糖酸奶", kcal: 60, protein: 4, fat: 1, carb: 3, note: "选择无糖无添加剂更安全" },
 ];
 
+const MEAL_PLAN_LIBRARY = [
+  { id: "protein", title: "高蛋白轻食", subtitle: "鸡肉 + 南瓜 + 鸡蛋", kcal: "约 350 kcal", color: C.forestDark },
+  { id: "lowfat", title: "低脂消化", subtitle: "白饭 + 南瓜泥 + 低脂酸奶", kcal: "约 300 kcal", color: C.caution },
+  { id: "energy", title: "高能日", subtitle: "牛肉颗粒 + 鸡蛋 + 白饭", kcal: "约 480 kcal", color: C.forest },
+];
+
+const NUTRITION_FILTERS = [
+  { label: "低脂", value: "low-fat" },
+  { label: "高蛋白", value: "high-protein" },
+  { label: "易消化", value: "easy-digest" },
+  { label: "低糖", value: "low-sugar" },
+  { label: "口味清淡", value: "mild" },
+  { label: "高能量", value: "energy" },
+];
+
+const POPULAR_MEAL_KITS = [
+  { name: "鸡肉南瓜碗", tag: "轻食", kcal: 360, note: "适合日常修复" },
+  { name: "牛肉米饭碗", tag: "高能", kcal: 470, note: "适合活动量高" },
+  { name: "蛋白酸奶杯", tag: "低脂", kcal: 210, note: "适合补水加餐" },
+  { name: "海鲜米粉碗", tag: "清淡", kcal: 300, note: "适合闷热天气" },
+];
+
 const COMMON_BOWL_FOODS = [
   { name: "鸡肉饭", keywords: ["鸡肉", "鸡", "饭", "米饭"], kcal: 180 },
   { name: "牛肉饭", keywords: ["牛肉", "牛", "饭", "米饭"], kcal: 200 },
@@ -1228,6 +1250,42 @@ function HomeTab({ pet, dailyGoal, dayTotal, dayProtein, dayFat, dayCarb, pct, d
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 22 }}>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 16, marginBottom: 10 }}>AI 智能餐盘</div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 12, overflowX: "auto", paddingBottom: 4 }}>
+          {NUTRITION_FILTERS.map((filter) => (
+            <span key={filter.value} style={{ flexShrink: 0, background: C.safeSoft, border: `1px solid ${C.border}`, color: C.forestDark, borderRadius: 999, fontSize: 11, padding: "6px 10px", fontWeight: 700 }}>{filter.label}</span>
+          ))}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {MEAL_PLAN_LIBRARY.map((plan) => (
+            <div key={plan.id} style={{ ...cardStyle(), padding: "12px 12px", borderLeft: `4px solid ${plan.color}` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700 }}>{plan.title}</div>
+                  <div style={{ fontSize: 11.5, color: C.inkSoft, marginTop: 3 }}>{plan.subtitle}</div>
+                </div>
+                <div style={{ fontSize: 11.5, color: plan.color, fontWeight: 700 }}>{plan.kcal}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ marginTop: 22 }}>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 16, marginBottom: 10 }}>热门搭配</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          {POPULAR_MEAL_KITS.map((meal) => (
+            <div key={meal.name} style={{ ...cardStyle(), padding: "10px 10px" }}>
+              <div style={{ fontSize: 10.5, color: C.forestDark, fontWeight: 700, background: C.safeSoft, borderRadius: 999, display: "inline-block", padding: "4px 8px", marginBottom: 6 }}>{meal.tag}</div>
+              <div style={{ fontSize: 13, fontWeight: 700 }}>{meal.name}</div>
+              <div style={{ fontSize: 11, color: C.inkSoft, marginTop: 3 }}>{meal.note}</div>
+              <div style={{ marginTop: 8, fontSize: 11.5, color: C.forestDark, fontWeight: 700 }}>{meal.kcal} kcal</div>
+            </div>
+          ))}
         </div>
       </div>
 
