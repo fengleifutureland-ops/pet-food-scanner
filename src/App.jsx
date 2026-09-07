@@ -307,6 +307,7 @@ export default function PetHealthApp() {
   const [scanImage, setScanImage] = useState(null);
   const [portion, setPortion] = useState(0);
   const fileInputRef = useRef(null);
+  const [isBowl, setIsBowl] = useState(false);
 
   const [manualOpen, setManualOpen] = useState(false);
   const [manualName, setManualName] = useState("");
@@ -516,6 +517,32 @@ export default function PetHealthApp() {
       img.src = url;
     });
 
+  const preprocessBowl = (dataUrl, cropRatio = 0.75, outDim = 1280) =>
+    new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const w = img.width;
+          const h = img.height;
+          const min = Math.min(w, h);
+          const crop = Math.round(min * cropRatio);
+          const sx = Math.round((w - crop) / 2);
+          const sy = Math.round((h - crop) / 2);
+          const canvas = document.createElement("canvas");
+          canvas.width = outDim;
+          canvas.height = outDim;
+          const ctx = canvas.getContext("2d");
+          // draw cropped center and resize to outDim
+          ctx.drawImage(img, sx, sy, crop, crop, 0, 0, outDim, outDim);
+          resolve(canvas.toDataURL("image/jpeg", 0.85));
+        } catch (e) {
+          reject(e);
+        }
+      };
+      img.onerror = () => reject(new Error("图片预处理失败。"));
+      img.src = dataUrl;
+    });
+
   const handleFile = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -534,12 +561,20 @@ export default function PetHealthApp() {
     }
 
     try {
+      // If user indicates this is a bowl photo, crop center to focus bowl
+      if (isBowl) {
+        try {
+          dataUrl = await preprocessBowl(dataUrl, 0.75, 1280);
+        } catch (e) {
+          console.warn("bowl preprocess failed", e);
+        }
+      }
       setScanImage(dataUrl);
       const base64 = dataUrl.split(",")[1];
       const speciesLabel = speciesMeta(activePet?.species).label;
-      const prompt = `你是宠物营养助手。这张照片里的食物可能是没有拆封的零食/包装食品，也可能是食物本身。如果是包装食品，请仔细阅读包装上的文字、品牌、图案来判断具体是什么产品，并据此估算营养信息，不要仅因为看不到食物本体就判定为无法识别。只返回一个 JSON 对象，不要包含任何 markdown 代码块标记或多余文字，严格匹配以下结构：
-{"food_name": "中文食物名称（尽量具体，如品牌+产品名）", "calories_per_100g": 数字, "protein_per_100g": 数字, "fat_per_100g": 数字, "carb_per_100g": 数字, "suggested_portion_g": 数字, "danger_level": "safe" 或 "caution" 或 "danger", "species_warning": "中文说明，如果对狗和猫都安全则为空字符串，否则说明对${speciesLabel}等宠物的风险", "tip": "一句简短的中文喂养建议"}
-只有在照片模糊、拍摄角度问题或完全看不清任何文字和图案、真正无法判断时，才将 food_name 设为 "无法识别"，danger_level 设为 "caution"。请特别留意巧克力、葡萄/葡萄干、洋葱、大蒜、木糖醇、牛油果、坚果（尤其夏威夷果）、酒精、咖啡因、生/熟骨头、高盐高脂人类食物、以及人类零食中常见的调味料和添加剂对宠物的潜在风险。`;
+      const prompt = `你是宠物营养助手。这张照片里的食物可能是没有拆封的零食/包装食品，也可能是食物本身。${
+        isBowl ? "这是碗中的食物，请重点分析中心区域，校准每份估算并尽量估计每份克数。" : ""
+      }如果是包装食品，请仔细阅读包装上的文字、品牌、图案来判断具体是什么产品，并据此估算营养信息，不要仅因为看不到食物本体就判定为无法识别。只返回一个 JSON 对象，不要包含任何 markdown 代码块标记或多余文字，严格匹配以下结构：\n{"food_name": "中文食物名称（尽量具体，如品牌+产品名）", "calories_per_100g": 数字, "protein_per_100g": 数字, "fat_per_100g": 数字, "carb_per_100g": 数字, "suggested_portion_g": 数字, "danger_level": "safe" 或 "caution" 或 "danger", "species_warning": "中文说明，如果对狗和猫都安全则为空字符串，否则说明对${speciesLabel}等宠物的风险", "tip": "一句简短的中文喂养建议"}\n只有在照片模糊、拍摄角度问题或完全看不清任何文字和图案、真正无法判断时，才将 food_name 设为 "无法识别"，danger_level 设为 "caution"。请特别留意巧克力、葡萄/葡萄干、洋葱、大蒜、木糖醇、牛油果、坚果（尤其夏威夷果）、酒精、咖啡因、生/熟骨头、高盐高脂人类食物、以及人类零食中常见的调味料和添加剂对宠物的潜在风险。`;
 
       const apiBase = import.meta.env.VITE_API_BASE || "";
       const response = await fetch(`${apiBase}/api/analyze-food`, {
@@ -956,6 +991,12 @@ function HomeTab({ pet, dailyGoal, dayTotal, dayProtein, dayFat, dayCarb, pct, d
               <button onClick={onGoScan} style={primaryBtnStyle({ width: "100%", display: "flex", justifyContent: "center", gap: 6, alignItems: "center", padding: "9px 12px" })}>
                 <Camera size={15} /> 拍照记一餐
               </button>
+            )}
+            {isToday && (
+              <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input id="bowlMode" type="checkbox" checked={isBowl} onChange={(e) => setIsBowl(e.target.checked)} />
+                <label htmlFor="bowlMode" style={{ fontSize: 12, color: C.inkSoft }}>碗中食物识别（更聚焦中心）</label>
+              </div>
             )}
           </div>
         </div>
