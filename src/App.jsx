@@ -185,6 +185,32 @@ const FOOD_LIBRARY = [
   { name: "无糖酸奶", kcal: 60, protein: 4, fat: 1, carb: 3, note: "选择无糖无添加剂更安全" },
 ];
 
+const COMMON_BOWL_FOODS = [
+  { name: "鸡肉饭", keywords: ["鸡肉", "鸡", "饭", "米饭"], kcal: 180 },
+  { name: "牛肉饭", keywords: ["牛肉", "牛", "饭", "米饭"], kcal: 200 },
+  { name: "海鲜饭", keywords: ["海鲜", "虾", "蟹", "鱼", "饭"], kcal: 170 },
+  { name: "鸡蛋面", keywords: ["鸡蛋", "面", "面条", " noodles"], kcal: 220 },
+  { name: "南瓜泥", keywords: ["南瓜", "pumpkin"], kcal: 40 },
+  { name: "鸡肉泥", keywords: ["鸡肉泥", "肉泥", "鸡肉"], kcal: 120 },
+  { name: "狗粮", keywords: ["狗粮", "宠物粮", "dry food", "kibble"], kcal: 330 },
+  { name: "猫粮", keywords: ["猫粮", "cat food", "dry food"], kcal: 320 },
+  { name: "酸奶", keywords: ["酸奶", "yogurt", " yogurt "], kcal: 60 },
+  { name: "泡软粮", keywords: ["湿粮", "泡软", "wet food", "罐头"], kcal: 140 },
+];
+
+function guessCommonBowlFood(text) {
+  const normalized = (text || "").toLowerCase();
+  let best = null;
+  for (const item of COMMON_BOWL_FOODS) {
+    const matches = item.keywords.filter((word) => normalized.includes(word.toLowerCase())).length;
+    if (matches > 0) {
+      const score = matches * 10 + (normalized.includes(item.name.toLowerCase()) ? 5 : 0);
+      if (!best || score > best.score) best = { ...item, score };
+    }
+  }
+  return best ? { name: best.name, calories_per_100g: best.kcal, protein_per_100g: 12, fat_per_100g: 6, carb_per_100g: 15, suggested_portion_g: 90, danger_level: "safe", species_warning: "", tip: "若是混合餐，建议按主食/主蛋白分开计量。" } : null;
+}
+
 function makeThumbnail(dataUrl, size = 140) {
   return new Promise((resolve) => {
     try {
@@ -334,6 +360,8 @@ export default function PetHealthApp() {
   const [portion, setPortion] = useState(0);
   const fileInputRef = useRef(null);
   const [isBowl, setIsBowl] = useState(false);
+  const [favoriteFoods, setFavoriteFoods] = useState([]);
+  const [recentFoods, setRecentFoods] = useState([]);
 
   const [manualOpen, setManualOpen] = useState(false);
   const [manualName, setManualName] = useState("");
@@ -404,9 +432,56 @@ export default function PetHealthApp() {
         loadedLogs = loadedLogs.map((l) => (l.petId ? l : { ...l, petId: loadedPets[0].id }));
       }
       setLogs(loadedLogs);
+
+      let loadedFavorites = [];
+      try {
+        const fav = await window.storage.get("favorites");
+        if (fav && fav.value) loadedFavorites = JSON.parse(fav.value);
+      } catch (e) {
+        loadedFavorites = [];
+      }
+      setFavoriteFoods(loadedFavorites);
+
+      let loadedRecent = [];
+      try {
+        const recent = await window.storage.get("recent-foods");
+        if (recent && recent.value) loadedRecent = JSON.parse(recent.value);
+      } catch (e) {
+        loadedRecent = [];
+      }
+      setRecentFoods(loadedRecent);
       setLoaded(true);
     })();
   }, []);
+
+  const persistFavorites = async (next) => {
+    setFavoriteFoods(next);
+    try {
+      await window.storage.set("favorites", JSON.stringify(next));
+    } catch (e) {
+      console.error("保存收藏失败", e);
+    }
+  };
+  const persistRecentFoods = async (next) => {
+    setRecentFoods(next);
+    try {
+      await window.storage.set("recent-foods", JSON.stringify(next));
+    } catch (e) {
+      console.error("保存最近识别失败", e);
+    }
+  };
+  const toggleFavorite = async (food) => {
+    if (!food || !food.name) return;
+    const next = favoriteFoods.some((item) => item.name === food.name)
+      ? favoriteFoods.filter((item) => item.name !== food.name)
+      : [{ id: uid(), name: food.name, calories: food.calories || 0, note: food.note || "" }, ...favoriteFoods].slice(0, 12);
+    await persistFavorites(next);
+  };
+  const recordRecentFood = async (foodName) => {
+    if (!foodName) return;
+    const next = [{ id: uid(), name: foodName, at: Date.now() }, ...recentFoods.filter((item) => item.name !== foodName)].slice(0, 8);
+    await persistRecentFoods(next);
+  };
 
   const persistPets = async (next) => {
     setPets(next);
@@ -619,8 +694,21 @@ export default function PetHealthApp() {
         throw new Error(`识别请求失败（状态码 ${response.status}）${detail ? "：" + detail : ""}`);
       }
       const parsed = await response.json();
-      setScanResult(parsed);
-      setPortion(Number(parsed.suggested_portion_g) || 50);
+      const fallback = guessCommonBowlFood(parsed?.food_name || "") || guessCommonBowlFood(prompt);
+      const normalized = {
+        ...parsed,
+        food_name: parsed?.food_name && parsed.food_name !== "无法识别" ? parsed.food_name : (fallback?.name || parsed?.food_name || "无法识别"),
+        calories_per_100g: Number(parsed?.calories_per_100g) || Number(fallback?.calories_per_100g) || 0,
+        protein_per_100g: Number(parsed?.protein_per_100g) || Number(fallback?.protein_per_100g) || 0,
+        fat_per_100g: Number(parsed?.fat_per_100g) || Number(fallback?.fat_per_100g) || 0,
+        carb_per_100g: Number(parsed?.carb_per_100g) || Number(fallback?.carb_per_100g) || 0,
+        suggested_portion_g: Number(parsed?.suggested_portion_g) || Number(fallback?.suggested_portion_g) || 50,
+        danger_level: parsed?.danger_level || fallback?.danger_level || "caution",
+        species_warning: parsed?.species_warning || fallback?.species_warning || "",
+        tip: parsed?.tip || fallback?.tip || "如情况不明显，可通过手动补录确认。",
+      };
+      setScanResult(normalized);
+      setPortion(Number(normalized.suggested_portion_g) || 50);
     } catch (err) {
       console.error(err);
       setScanError(err.message && err.message.startsWith("识别请求失败") ? err.message : "识别失败，可以重试，或直接手动添加食物信息。");
@@ -652,6 +740,7 @@ export default function PetHealthApp() {
       source: "scan",
       photo: thumb,
     });
+    await recordRecentFood(scanResult.food_name);
     setScanResult(null);
     setScanImage(null);
     setPortion(0);
@@ -835,6 +924,9 @@ export default function PetHealthApp() {
             onGoManage={() => setTab("manage")}
             isBowl={isBowl}
             setIsBowl={setIsBowl}
+            favoriteFoods={favoriteFoods}
+            recentFoods={recentFoods}
+            onToggleFavorite={toggleFavorite}
           />
         )}
         {tab === "scan" && (
@@ -949,7 +1041,7 @@ function MacroPill({ icon: Icon, value, unit, label, color, bg }) {
 }
 
 // ================= HOME =================
-function HomeTab({ pet, dailyGoal, dayTotal, dayProtein, dayFat, dayCarb, pct, dayLogs, selectedDate, dayOffset, setDayOffset, onRemove, onEditGrams, onGoScan, onGoManage, isBowl, setIsBowl }) {
+function HomeTab({ pet, dailyGoal, dayTotal, dayProtein, dayFat, dayCarb, pct, dayLogs, selectedDate, dayOffset, setDayOffset, onRemove, onEditGrams, onGoScan, onGoManage, isBowl, setIsBowl, favoriteFoods, recentFoods, onToggleFavorite }) {
   const [editingId, setEditingId] = useState(null);
   const [editGrams, setEditGrams] = useState("");
   const [foodQuery, setFoodQuery] = useState("");
@@ -1105,6 +1197,39 @@ function HomeTab({ pet, dailyGoal, dayTotal, dayProtein, dayFat, dayCarb, pct, d
           })}
         </div>
       )}
+
+      <div style={{ marginTop: 22 }}>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 16, marginBottom: 10 }}>收藏与最近识别</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ ...cardStyle(), padding: "12px 12px 10px" }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>我的收藏</div>
+            {favoriteFoods.length === 0 ? (
+              <div style={{ fontSize: 11.5, color: C.inkSoft }}>还没有收藏，识别结果页可一键收藏常见食物。</div>
+            ) : (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {favoriteFoods.map((food) => (
+                  <span key={food.id || food.name} style={{ background: C.safeSoft, color: C.forestDark, borderRadius: 999, padding: "5px 8px", fontSize: 11.5, fontWeight: 700 }}>{food.name}</span>
+                ))}
+              </div>
+            )}
+          </div>
+          <div style={{ ...cardStyle(), padding: "12px 12px 10px" }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>最近识别</div>
+            {recentFoods.length === 0 ? (
+              <div style={{ fontSize: 11.5, color: C.inkSoft }}>还没有识别记录。</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {recentFoods.map((food) => (
+                  <div key={food.id || food.name} style={{ fontSize: 12, color: C.inkSoft, display: "flex", justifyContent: "space-between", gap: 8 }}>
+                    <span>{food.name}</span>
+                    <button onClick={() => onToggleFavorite({ name: food.name, calories: 0, note: "从最近记录中加入收藏" })} style={{ background: "none", border: "none", cursor: "pointer", color: C.forestDark, fontWeight: 700 }}>收藏</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
       <div style={{ marginTop: 22 }}>
         <div style={{ fontFamily: FONT_DISPLAY, fontSize: 16, marginBottom: 10 }}>宠物资讯 · 轻食堂</div>
