@@ -25,6 +25,16 @@ function extractTextFromAnthropic(responseJson) {
 }
 
 app.post("/api/analyze-food", async (req, res) => {
+  // Ensure CORS headers for browser clients
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    res.status(204).end();
+    return;
+  }
+
   const { base64, mediaType, prompt } = req.body || {};
   if (!base64 || !prompt) {
     res.status(400).json({ error: "请求缺少图片数据或提示词。" });
