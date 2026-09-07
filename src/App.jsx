@@ -159,6 +159,32 @@ const TOXIC_FOODS = [
   { name: "高盐/高脂人类食物", note: "加重肾脏负担，可能诱发胰腺炎" },
 ];
 
+const ARTICLE_LIBRARY = [
+  {
+    id: "article-1",
+    title: "幼犬/幼猫怎么吃才更稳？",
+    tag: "营养基础",
+    intro: "从胃口、主食比例到每周体重变化，掌握 3 个关键点，能让营养更稳定。",
+    body: "少量少量喂养更稳妥：新宠先用 1-2 周观察胃口和便便，再逐步调整主食比例。热量不宜突增，建议按体重与活动量估算目标，再用体重曲线校准。每日记录很重要，体重波动是最可靠的反馈信号。",
+  },
+  {
+    id: "article-2",
+    title: "碗中食物拍照识别的 4 个小技巧",
+    tag: "AI 识别",
+    intro: "尽量让碗处于图片中心，背景保持单一，识别率会明显提升。",
+    body: "拍摄时尽量让碗与背景对比明显；避免将桌布、手、玩具和其他食物混进同一视角。用自然光并避免逆光，保持镜头垂直俯拍效果最好。若是混食，可以先把拍摄区域裁到中心，再让 AI 聚焦食物主体。",
+  },
+];
+
+const FOOD_LIBRARY = [
+  { name: "鸡肉泥", kcal: 120, protein: 21, fat: 3, carb: 1, note: "高蛋白、低脂，适合换粮或补充餐" },
+  { name: "牛肉颗粒", kcal: 180, protein: 22, fat: 8, carb: 0, note: "适量可作高蛋白加餐" },
+  { name: "白饭", kcal: 130, protein: 2, fat: 0.3, carb: 28, note: "适合少量搭配，别当主食过量" },
+  { name: "鸡蛋", kcal: 155, protein: 13, fat: 11, carb: 1, note: "优质蛋白，适量可作为零食或辅食" },
+  { name: "南瓜泥", kcal: 40, protein: 1, fat: 0.1, carb: 9, note: "易消化，适合补水和增加饱腹感" },
+  { name: "无糖酸奶", kcal: 60, protein: 4, fat: 1, carb: 3, note: "选择无糖无添加剂更安全" },
+];
+
 function makeThumbnail(dataUrl, size = 140) {
   return new Promise((resolve) => {
     try {
@@ -807,6 +833,8 @@ export default function PetHealthApp() {
             onEditGrams={editLogGrams}
             onGoScan={() => setTab("scan")}
             onGoManage={() => setTab("manage")}
+            isBowl={isBowl}
+            setIsBowl={setIsBowl}
           />
         )}
         {tab === "scan" && (
@@ -921,9 +949,11 @@ function MacroPill({ icon: Icon, value, unit, label, color, bg }) {
 }
 
 // ================= HOME =================
-function HomeTab({ pet, dailyGoal, dayTotal, dayProtein, dayFat, dayCarb, pct, dayLogs, selectedDate, dayOffset, setDayOffset, onRemove, onEditGrams, onGoScan, onGoManage }) {
+function HomeTab({ pet, dailyGoal, dayTotal, dayProtein, dayFat, dayCarb, pct, dayLogs, selectedDate, dayOffset, setDayOffset, onRemove, onEditGrams, onGoScan, onGoManage, isBowl, setIsBowl }) {
   const [editingId, setEditingId] = useState(null);
   const [editGrams, setEditGrams] = useState("");
+  const [foodQuery, setFoodQuery] = useState("");
+  const visibleFoods = FOOD_LIBRARY.filter((item) => item.name.toLowerCase().includes(foodQuery.toLowerCase()) || item.note.toLowerCase().includes(foodQuery.toLowerCase()));
 
   if (!pet) {
     return (
@@ -1075,6 +1105,49 @@ function HomeTab({ pet, dailyGoal, dayTotal, dayProtein, dayFat, dayCarb, pct, d
           })}
         </div>
       )}
+
+      <div style={{ marginTop: 22 }}>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 16, marginBottom: 10 }}>宠物资讯 · 轻食堂</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {ARTICLE_LIBRARY.map((article) => (
+            <div key={article.id} style={{ ...cardStyle(), padding: "12px 12px 10px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ fontSize: 10.5, color: C.forestDark, background: C.safeSoft, borderRadius: 999, padding: "4px 8px", fontWeight: 700 }}>{article.tag}</span>
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>{article.title}</div>
+              <div style={{ fontSize: 11.5, color: C.inkSoft, marginBottom: 8 }}>{article.intro}</div>
+              <div style={{ fontSize: 11.5, color: C.ink, lineHeight: 1.7 }}>{article.body}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ marginTop: 22 }}>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 16, marginBottom: 10 }}>常见食物速查</div>
+        <div style={{ ...cardStyle(), padding: "10px 12px" }}>
+          <input
+            value={foodQuery}
+            onChange={(e) => setFoodQuery(e.target.value)}
+            placeholder="搜索食物 / 关键词"
+            style={{ ...inputStyle(), marginBottom: 10 }}
+          />
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {visibleFoods.length === 0 ? (
+              <div style={{ fontSize: 12, color: C.inkSoft }}>没有匹配的食物。</div>
+            ) : (
+              visibleFoods.map((food) => (
+                <div key={food.name} style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: "9px 10px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>{food.name}</div>
+                    <div style={{ fontSize: 11.5, color: C.forestDark, fontWeight: 700 }}>{food.kcal} kcal/100g</div>
+                  </div>
+                  <div style={{ fontSize: 11.2, color: C.inkSoft, marginTop: 4 }}>{food.note}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
