@@ -9,7 +9,7 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     env:
-      VITE_API_BASE: https://meng-chong-shi-guang-46rh7nn0z-fengleifutureland-ops-projects.vercel.app
+      VITE_API_BASE: https://meng-chong-shi-guang.vercel.app
     steps:
       - name: Checkout
         uses: actions/checkout@v4
