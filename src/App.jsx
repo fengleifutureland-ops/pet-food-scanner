@@ -174,6 +174,27 @@ const ARTICLE_LIBRARY = [
     intro: "尽量让碗处于图片中心，背景保持单一，识别率会明显提升。",
     body: "拍摄时尽量让碗与背景对比明显；避免将桌布、手、玩具和其他食物混进同一视角。用自然光并避免逆光，保持镜头垂直俯拍效果最好。若是混食，可以先把拍摄区域裁到中心，再让 AI 聚焦食物主体。",
   },
+  {
+    id: "article-3",
+    title: "宠物食物过敏的早期信号",
+    tag: "健康警示",
+    intro: "皮肤瘙痒、反复呕吐或腹泻可能是食物过敏的表现，及时观察很重要。",
+    body: "若连续数天出现皮肤红斑、抓挠或消化不良，应暂停新引入的食物，并记录时间与症状。必要时咨询兽医进行饮食排查或更换低敏处方食。",
+  },
+  {
+    id: "article-4",
+    title: "如何把人类食物安全地转为宠物餐",
+    tag: "饮食指南",
+    intro: "并非所有人类食物都能直接给宠物吃，掌握替代与份量很关键。",
+    body: "去盐、去调料、少油是基本原则；肉类应彻底煮熟并去骨；避免洋葱、葡萄、巧克力等明确禁食名单。可将熟肉与富含纤维的南瓜泥、适量米饭混合成均衡配方。",
+  },
+  {
+    id: "article-5",
+    title: "训练与奖励：零食的使用时机与份量",
+    tag: "行为训练",
+    intro: "把握奖励频率与每次份量，避免把零食当作主食。",
+    body: "训练时使用低热量、高吸引力的小份食物，每次不超过日总热量的 5%。将奖励计入日常摄入可以避免体重管理失控。",
+  },
 ];
 
 const FOOD_LIBRARY = [
@@ -183,6 +204,10 @@ const FOOD_LIBRARY = [
   { name: "鸡蛋", kcal: 155, protein: 13, fat: 11, carb: 1, note: "优质蛋白，适量可作为零食或辅食" },
   { name: "南瓜泥", kcal: 40, protein: 1, fat: 0.1, carb: 9, note: "易消化，适合补水和增加饱腹感" },
   { name: "无糖酸奶", kcal: 60, protein: 4, fat: 1, carb: 3, note: "选择无糖无添加剂更安全" },
+  { name: "三文鱼丁", kcal: 208, protein: 20, fat: 13, carb: 0, note: "富含 Omega-3，适量有助皮毛健康（注意无骨）" },
+  { name: "甘薯泥", kcal: 85, protein: 1.6, fat: 0.1, carb: 20, note: "高纤维、低脂，适合调理肠道" },
+  { name: "鸡肝小块", kcal: 165, protein: 20, fat: 6, carb: 2, note: "营养丰富但不能过量，避免维生素 A 过量" },
+  { name: "无盐坚果碎（极少）", kcal: 600, protein: 20, fat: 55, carb: 20, note: "大多数坚果不适合宠物，仅极少量且需去皮去盐" },
 ];
 
 const MEAL_PLAN_LIBRARY = [
@@ -196,6 +221,8 @@ const RECIPE_LIBRARY = [
   { id: "recipe-2", title: "牛肉米饭碗", tags: ["energy", "high-protein"], kcal: 470, desc: "牛肉颗粒搭配米饭，适合活动量高的宠物。", badge: "高能" },
   { id: "recipe-3", title: "低脂酸奶杯", tags: ["low-fat", "low-sugar"], kcal: 210, desc: "无糖酸奶搭配南瓜泥，适合补水和加餐。", badge: "低脂" },
   { id: "recipe-4", title: "海鲜清淡碗", tags: ["mild", "easy-digest", "low-fat"], kcal: 300, desc: "清淡海鲜搭配蒸熟米饭，适合胃口不太好的日子。", badge: "清淡" },
+  { id: "recipe-5", title: "三文鱼甘薯碗", tags: ["mild", "omega-3"], kcal: 420, desc: "烤熟三文鱼丁搭配甘薯泥和少量蒸饭，对皮毛保健友好。", badge: "海鲜" },
+  { id: "recipe-6", title: "鸡肝蔬菜拌碗", tags: ["treat", "nutrient-dense"], kcal: 330, desc: "少量鸡肝与熟蔬菜拌匀，作为奖励或营养补充。", badge: "奖励" },
 ];
 
 const NUTRITION_FILTERS = [
@@ -212,6 +239,8 @@ const POPULAR_MEAL_KITS = [
   { name: "牛肉米饭碗", tag: "高能", kcal: 470, note: "适合活动量高" },
   { name: "蛋白酸奶杯", tag: "低脂", kcal: 210, note: "适合补水加餐" },
   { name: "海鲜米粉碗", tag: "清淡", kcal: 300, note: "适合闷热天气" },
+  { name: "三文鱼甘薯碗", tag: "皮毛", kcal: 420, note: "有助改善毛质与光泽" },
+  { name: "鸡肝小食盘", tag: "奖励", kcal: 330, note: "适合训练时的小奖励（少量）" },
 ];
 
 const COMMON_BOWL_FOODS = [
@@ -225,6 +254,9 @@ const COMMON_BOWL_FOODS = [
   { name: "猫粮", keywords: ["猫粮", "cat food", "dry food"], kcal: 320 },
   { name: "酸奶", keywords: ["酸奶", "yogurt", " yogurt "], kcal: 60 },
   { name: "泡软粮", keywords: ["湿粮", "泡软", "wet food", "罐头"], kcal: 140 },
+  { name: "三文鱼饭", keywords: ["三文鱼", "鱼", "饭"], kcal: 200 },
+  { name: "甘薯鸡肉碗", keywords: ["甘薯", "鸡肉", "饭"], kcal: 220 },
+  { name: "鸡肝小碗", keywords: ["鸡肝", "肝", "小食"], kcal: 165 },
 ];
 
 function guessCommonBowlFood(text) {
